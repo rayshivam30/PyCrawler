@@ -1,0 +1,30 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+
+# Local credentials
+.env
+
+# Generated Local Datasets / Mock Corpora
+mock_corpus/
+
+# Temporary / diagnostic scratch scripts
+scratch/
+
+# IDE and system files
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+Thumbs.db
+Desktop.ini

@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyCrawler Dashboard & Search</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #070a13;
+            --bg-grid: #0d111d;
+            --bg-card: rgba(17, 24, 39, 0.7);
+            --border-glass: rgba(255, 255, 255, 0.08);
+            --primary: #06b6d4;
+            --primary-glow: rgba(6, 182, 212, 0.35);
+            --secondary: #6366f1;
+            --secondary-glow: rgba(99, 102, 241, 0.3);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+                radial-gradient(at 50% 0%, rgba(6, 182, 212, 0.12) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(16, 185, 129, 0.08) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: var(--text-main);
+            min-height: 100vh;
+            padding-bottom: 2rem;
+            overflow-x: hidden;
+        }
+
+        /* Layout Grid */
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+
+        /* Glass Header */
+        header {
+            background: rgba(13, 17, 29, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-glass);
+            border-radius: 16px;
+            padding: 1.25rem 2rem;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+            animation: fadeInDown 0.6s ease;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--primary);
+            box-shadow: 0 0 15px var(--primary);
+        }
+
+        .logo-text {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 1.5rem;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #fff 0%, var(--primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-glass);
+            padding: 0.5rem 1rem;
+            border-radius: 99px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--danger);
+        }
+
+        .status-dot.active {
+            background: var(--success);
+            box-shadow: 0 0 10px var(--success);
+            animation: pulse 1.5s infinite;
+        }
+
+        /* Dashboard Grid Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (min-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 2fr 1fr;
+            }
+        }
+
+        /* Glass Card Base */
+        .glass-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-glass);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            transition: var(--transition);
+            overflow: hidden;
+        }
+
+        .glass-card:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.45);
+        }
+
+        .card-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-bottom: 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 0.75rem;
+        }
+
+        /* Stat Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 12px;
+            padding: 1.25rem 1rem;
+            text-align: center;
+            transition: var(--transition);
+        }
+
+        .stat-card:hover {
+            background: rgba(255, 255, 255, 0.04);
+            transform: translateY(-2px);
+        }
+
+        .stat-value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+            color: var(--primary);
+            text-shadow: 0 0 15px var(--primary-glow);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+        }
+
+        /* Action Buttons */
+        .btn-group {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 0.75rem 1.25rem;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: var(--transition);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            box-shadow: 0 4px 15px var(--primary-glow);
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px var(--primary-glow);
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--danger);
+        }
+
+        .btn-danger:hover {
+            background: var(--danger);
+            color: white;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-glass);
+            color: var(--text-main);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Forms */
+        .form-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .input-text {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-glass);
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            color: white;
+            outline: none;
+            font-size: 0.9rem;
+            transition: var(--transition);
+        }
+
+        .input-text:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        /* Seed List */
+        .list-container {
+            max-height: 240px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            padding-right: 0.25rem;
+        }
+
+        .list-item {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 8px;
+            padding: 0.65rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            transition: var(--transition);
+        }
+
+        .list-item:hover {
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .list-item-title {
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        .delete-icon {
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .delete-icon:hover {
+            color: var(--danger);
+        }
+
+        /* Search Section */
+        .search-area {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+
+        .search-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-bar {
+            width: 100%;
+            background: rgba(13, 17, 29, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-glass);
+            padding: 1.15rem 1.5rem;
+            font-size: 1.1rem;
+            border-radius: 14px;
+            color: white;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .search-bar:focus {
+            border-color: var(--secondary);
+            box-shadow: 0 0 25px var(--secondary-glow);
+        }
+
+        .suggest-dropdown {
+            position: absolute;
+            top: calc(100% + 5px);
+            left: 0;
+            width: 100%;
+            background: #0d111d;
+            border: 1px solid var(--border-glass);
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+            z-index: 100;
+            max-height: 250px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .suggest-item {
+            padding: 0.75rem 1.25rem;
+            cursor: pointer;
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            transition: var(--transition);
+        }
+
+        .suggest-item:hover {
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--primary);
+        }
+
+        /* Search Results */
+        .results-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .result-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 12px;
+            padding: 1.25rem;
+            transition: var(--transition);
+            animation: fadeInUp 0.5s ease;
+        }
+
+        .result-card:hover {
+            border-color: rgba(99, 102, 241, 0.2);
+            background: rgba(255, 255, 255, 0.03);
+            transform: translateY(-2px);
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.5rem;
+            gap: 1rem;
+        }
+
+        .result-title {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 1.15rem;
+            color: var(--primary);
+            text-decoration: none;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .result-title:hover {
+            color: var(--secondary);
+            text-decoration: underline;
+        }
+
+        .result-url {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            word-break: break-all;
+            margin-bottom: 0.5rem;
+        }
+
+        .result-snippet {
+            font-size: 0.88rem;
+            color: var(--text-main);
+            line-height: 1.5;
+            margin-bottom: 0.75rem;
+        }
+
+        .result-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .result-score {
+            background: rgba(6, 182, 212, 0.1);
+            color: var(--primary);
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        /* Top Domains Bars */
+        .domain-row {
+            margin-bottom: 1rem;
+        }
+
+        .domain-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .domain-bar-bg {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .domain-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
+            border-radius: 3px;
+            width: 0%;
+            transition: width 1s ease-out;
+        }
+
+        /* Crawl Progress Bar */
+        .progress-bar-container {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-glass);
+            border-radius: 99px;
+            height: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
+            width: 0%;
+            transition: width 0.5s ease-in-out;
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-top: 0.4rem;
+        }
+
+        /* Navigation Tabs styling */
+        .nav-tabs {
+            display: flex;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-glass);
+            padding: 4px;
+            border-radius: 99px;
+            gap: 4px;
+        }
+
+        .nav-tab {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            padding: 0.5rem 1.25rem;
+            border-radius: 99px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .nav-tab:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .nav-tab.active {
+            color: white;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            box-shadow: 0 4px 12px var(--primary-glow);
+        }
+
+        .view-section {
+            animation: fadeInUp 0.4s ease;
+        }
+
+        /* Interactive Detail Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            padding: 1.5rem;
+        }
+
+        .modal.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-content {
+            background: #0d111d;
+            border: 1px solid var(--border-glass);
+            width: 100%;
+            max-width: 900px;
+            height: 80vh;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            transform: scale(0.95);
+            transition: transform 0.3s ease;
+        }
+
+        .modal.active .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .close-btn {
+            font-size: 1.5rem;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .close-btn:hover {
+            color: var(--danger);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-meta-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: rgba(255,255,255,0.02);
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.04);
+            font-size: 0.85rem;
+        }
+
+        .modal-meta-item {
+            color: var(--text-muted);
+        }
+
+        .modal-meta-item strong {
+            color: var(--text-main);
+        }
+
+        .modal-text {
+            line-height: 1.6;
+            color: #d1d5db;
+            font-size: 0.95rem;
+            white-space: pre-wrap;
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+            }
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+            }
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+            }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <!-- Header -->
+    <header>
+        <div class="logo-container">
+            <div class="logo-dot"></div>
+            <div class="logo-text">PyCrawler</div>
+        </div>
+        <nav class="nav-tabs">
+            <button id="tabSearch" class="nav-tab active" onclick="switchView('search')">Search Engine</button>
+            <button id="tabAdmin" class="nav-tab" onclick="switchView('admin')">Admin Dashboard</button>
+        </nav>
+        <div class="status-badge">
+            <div id="statusDot" class="status-dot"></div>
+            <span id="statusLabel">Crawler Stopped</span>
+        </div>
+    </header>
+
+    <!-- Search Engine View (Normal Viewer Part) -->
+    <div id="searchView" class="view-section">
+        <div style="text-align: center; margin: 2rem 0; animation: fadeInDown 0.6s ease;">
+            <h1 style="font-family: 'Outfit', sans-serif; font-size: 2.75rem; font-weight: 700; background: linear-gradient(135deg, #fff 30%, var(--primary) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Search Engine</h1>
+            <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 0.25rem;">Ranked and indexed results by TF-IDF scoring</p>
+        </div>
+
+        <!-- Search Area -->
+        <div class="search-area">
+            <div class="search-input-wrapper">
+                <input id="searchBar" type="text" class="search-bar" placeholder="Search the crawler index (e.g. Python, FastAPI, Crawler)..." oninput="showSuggestions(this.value)" onkeydown="checkSearchEnter(event)">
+            </div>
+            <div id="suggestDropdown" class="suggest-dropdown"></div>
+        </div>
+
+        <!-- Search Results -->
+        <div class="glass-card" style="min-height: 400px; margin-bottom: 2rem;">
+            <div class="card-title">Search Results <span id="resultsCount" style="font-size: 0.85rem; color: var(--text-muted);">0 results</span></div>
+            <div id="resultsList" class="results-container">
+                <div style="text-align: center; color: var(--text-muted); padding-top: 6rem;">
+                    Submit a search query or configure seeds in the Admin Dashboard tab.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard View (Admin Part) -->
+    <div id="adminView" class="view-section" style="display: none;">
+        <!-- Main Grid -->
+        <div class="dashboard-grid">
+            
+            <!-- Left Pane: Controls & Stats -->
+            <div>
+                <!-- Stats -->
+                <div class="glass-card" style="margin-bottom: 1.5rem;">
+                    <div class="card-title">System Metrics</div>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div id="statPages" class="stat-value">0</div>
+                            <div class="stat-label">Pages Indexed</div>
+                        </div>
+                        <div class="stat-card">
+                            <div id="statPending" class="stat-value">0</div>
+                            <div class="stat-label">URLs Pending</div>
+                        </div>
+                        <div class="stat-card">
+                            <div id="statFailed" class="stat-value">0</div>
+                            <div class="stat-label">URLs Failed</div>
+                        </div>
+                        <div class="stat-card">
+                            <div id="statQueue" class="stat-value">0</div>
+                            <div class="stat-label">Queue Size</div>
+                        </div>
+                        <div class="stat-card">
+                            <div id="statWorkers" class="stat-value">0</div>
+                            <div class="stat-label">Active Workers</div>
+                        </div>
+                        <div id="dbSizeCard" class="stat-card">
+                            <div id="statDbSize" class="stat-value">0</div>
+                            <div class="stat-label">Database Size</div>
+                        </div>
+                        <div class="stat-card" style="border-color: rgba(239,68,68,0.25);">
+                            <div id="statRedisQueue" class="stat-value" style="color: #ef4444;">0</div>
+                            <div class="stat-label">Redis Queue</div>
+                        </div>
+                        <div class="stat-card" style="border-color: rgba(239,68,68,0.25);">
+                            <div id="statRedisVisited" class="stat-value" style="color: #ef4444;">0</div>
+                            <div class="stat-label">URLs Seen (Dedup)</div>
+                        </div>
+                        <div class="stat-card" style="border-color: rgba(34,197,94,0.25);">
+                            <div id="statSkipped" class="stat-value" style="color: #22c55e;">0</div>
+                            <div class="stat-label">Pages Skipped (304)</div>
+                        </div>
+                        <div class="stat-card" style="border-color: rgba(251,191,36,0.25);">
+                            <div id="statUpdated" class="stat-value" style="color: #fbbf24;">0</div>
+                            <div class="stat-label">Pages Updated</div>
+                        </div>
+                    </div>
+
+                    <!-- Crawl Progress Bar -->
+                    <div style="margin-bottom: 1.5rem;">
+                        <div class="progress-bar-container">
+                            <div id="progressBarFill" class="progress-bar-fill"></div>
+                        </div>
+                        <div class="progress-label">
+                            <span>Crawl Progress</span>
+                            <span id="progressText">0%</span>
+                        </div>
+                    </div>
+
+                    <div class="btn-group">
+                        <button id="btnStart" class="btn btn-primary" onclick="startCrawler()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                            Start Crawler
+                        </button>
+                        <button id="btnRecrawl" class="btn" style="background: rgba(251,191,36,0.15); border: 1px solid rgba(251,191,36,0.4); color: #fbbf24;" onclick="recrawlPages()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                            Recrawl (Incremental)
+                        </button>
+                        <button id="btnPageRank" class="btn" style="background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.4); color: #a855f7;" onclick="computePageRank()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                            Compute PageRank
+                        </button>
+                        <button id="btnStop" class="btn btn-danger" onclick="stopCrawler()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="4" y="4" width="16" height="16"></rect></svg>
+                            Stop Crawler
+                        </button>
+                    </div>
+                    <!-- Semantic Search status badge -->
+                    <div style="margin-top: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <span id="semanticDot" style="width:8px;height:8px;border-radius:50%;background:#6b7280;flex-shrink:0;"></span>
+                        <span id="semanticLabel" style="font-size:0.75rem;color:var(--text-muted);">Semantic Search: checking...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Pane: Seeds & Domain lists -->
+            <div>
+                <!-- Seeds Manager -->
+                <div class="glass-card" style="margin-bottom: 1.5rem;">
+                    <div class="card-title">Seed URL Manager</div>
+                    <div class="form-group">
+                        <input id="seedInput" type="text" class="input-text" placeholder="https://docs.python.org">
+                        <button class="btn btn-primary" style="flex: 0; padding: 0 1.25rem;" onclick="addSeed()">Add</button>
+                    </div>
+                    <div id="seedList" class="list-container">
+                        <!-- Seed items inserted dynamically -->
+                    </div>
+                </div>
+
+                <!-- Top Domains Bar -->
+                <div class="glass-card" style="margin-bottom: 1.5rem;">
+                    <div class="card-title">Top Domains</div>
+                    <div id="topDomainsContainer">
+                        <div style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 2rem 0;">No domains crawled yet</div>
+                    </div>
+                </div>
+
+                <!-- Top Queries -->
+                <div class="glass-card">
+                    <div class="card-title">Top Search Queries</div>
+                    <div id="topQueriesList" class="list-container" style="max-height: 200px;">
+                        <div style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 2rem 0;">No queries recorded</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- Modal Page Inspector -->
+<div id="pageModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div id="modalTitle" class="modal-title">Page Details</div>
+            <button class="close-btn" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-meta-row">
+                <div class="modal-meta-item">URL: <a id="modalUrl" href="#" target="_blank" style="color: var(--primary);"></a></div>
+                <div class="modal-meta-item">Response Status: <strong id="modalStatus">-</strong></div>
+                <div class="modal-meta-item">Indexed At: <strong id="modalCrawlTime">-</strong></div>
+            </div>
+            <div id="modalContent" class="modal-text"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_BASE = '/api';
+    let pollInterval = null;
+
+    // Startup Tasks
+    window.addEventListener('DOMContentLoaded', () => {
+        fetchStats();
+        fetchSeeds();
+        fetchCrawlStatus();
+        
+        // Start polling stats and crawler status every 3 seconds
+        pollInterval = setInterval(() => {
+            fetchStats();
+            fetchCrawlStatus();
+        }, 3000);
+
+        // Hide suggestions when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-area')) {
+                document.getElementById('suggestDropdown').style.display = 'none';
+            }
+        });
+    });
+
+    // Fetch live system statistics
+    async function fetchStats() {
+        try {
+            const res = await fetch(`${API_BASE}/stats`);
+            if (!res.ok) return;
+            const data = await res.json();
+
+            // Populate dashboard numeric cards
+            document.getElementById('statPages').textContent = data.pages_crawled;
+            document.getElementById('statPending').textContent = data.urls_pending;
+            document.getElementById('statFailed').textContent = data.urls_failed;
+            document.getElementById('statQueue').textContent = data.queue_size;
+            document.getElementById('statWorkers').textContent = data.active_workers;
+            document.getElementById('statDbSize').textContent = data.database_size_mb + ' MB';
+            
+            // Update Redis metric cards
+            document.getElementById('statRedisQueue').textContent = data.redis_queue_size ?? data.queue_size;
+            document.getElementById('statRedisVisited').textContent = data.redis_visited_count ?? 0;
+            
+            // Update incremental crawl stat cards
+            document.getElementById('statSkipped').textContent = data.pages_skipped ?? 0;
+            document.getElementById('statUpdated').textContent = data.pages_updated ?? 0;
+
+            // Update semantic search status badge
+            const dot = document.getElementById('semanticDot');
+            const lbl = document.getElementById('semanticLabel');
+            if (data.semantic_available) {
+                dot.style.background = '#22c55e';
+                lbl.textContent = 'Semantic Search: Active (all-MiniLM-L6-v2)';
+                lbl.style.color = '#22c55e';
+            } else {
+                dot.style.background = '#ef4444';
+                lbl.textContent = 'Semantic Search: Unavailable (install sentence-transformers)';
+                lbl.style.color = 'var(--text-muted)';
+            }
+            
+            // Update progress bar
+            const pct = data.progress_percentage || 0;
+            document.getElementById('progressBarFill').style.width = pct + '%';
+            document.getElementById('progressText').textContent = pct + '%';
+
+            // Render Top Domains progress bars
+            const domainsContainer = document.getElementById('topDomainsContainer');
+            if (data.top_domains && data.top_domains.length > 0) {
+                const maxCount = Math.max(...data.top_domains.map(d => d.count));
+                domainsContainer.innerHTML = data.top_domains.map(d => {
+                    const percentage = maxCount > 0 ? (d.count / maxCount) * 100 : 0;
+                    return `
+                        <div class="domain-row">
+                            <div class="domain-info">
+                                <span style="font-weight: 500;">${d.domain}</span>
+                                <span style="color: var(--primary); font-weight: 600;">${d.count} pages</span>
+                            </div>
+                            <div class="domain-bar-bg">
+                                <div class="domain-bar-fill" style="width: ${percentage}%"></div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                domainsContainer.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 2rem 0;">No domains crawled yet</div>';
+            }
+
+            // Render Top Queries List
+            const queriesList = document.getElementById('topQueriesList');
+            if (data.top_queries && data.top_queries.length > 0) {
+                queriesList.innerHTML = data.top_queries.map(q => `
+                    <div class="list-item" style="cursor: pointer;" onclick="triggerSearch('${q.query}')">
+                        <span class="list-item-title">${q.query}</span>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">${q.count} searches</span>
+                    </div>
+                `).join('');
+            } else {
+                queriesList.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 2rem 0;">No queries recorded</div>';
+            }
+        } catch (e) {
+            console.error("Failed to fetch statistics", e);
+        }
+    }
+
+    // Fetch seed domains
+    async function fetchSeeds() {
+        try {
+            const res = await fetch(`${API_BASE}/seed`);
+            if (!res.ok) return;
+            const seeds = await res.json();
+
+            const seedList = document.getElementById('seedList');
+            if (seeds.length > 0) {
+                seedList.innerHTML = seeds.map(s => `
+                    <div class="list-item">
+                        <span class="list-item-title">${s.domain}</span>
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <span style="font-size: 0.75rem; padding: 0.15rem 0.4rem; border-radius: 4px; background: rgba(255,255,255,0.03); color: var(--text-muted);">
+                                Delay: ${s.crawl_delay}s
+                            </span>
+                            <span class="delete-icon" onclick="deleteSeed(${s.id})">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            </span>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                seedList.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 1.5rem 0;">No seed URLs added.</div>';
+            }
+        } catch (e) {
+            console.error("Failed to fetch seed URLs", e);
+        }
+    }
+
+    // Add a seed URL
+    async function addSeed() {
+        const seedInput = document.getElementById('seedInput');
+        const url = seedInput.value.trim();
+        if (!url) return;
+
+        try {
+            const res = await fetch(`${API_BASE}/seed`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url })
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                seedInput.value = '';
+                fetchSeeds();
+                fetchStats();
+            } else {
+                alert(data.detail || "Error adding seed URL");
+            }
+        } catch (e) {
+            console.error("Failed to add seed", e);
+        }
+    }
+
+    // Delete a seed domain
+    async function deleteSeed(id) {
+        if (!confirm("Are you sure you want to delete this seed and its crawled pages?")) return;
+        try {
+            const res = await fetch(`${API_BASE}/seed/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                fetchSeeds();
+                fetchStats();
+            } else {
+                alert("Error deleting seed domain");
+            }
+        } catch (e) {
+            console.error("Failed to delete seed", e);
+        }
+    }
+
+    // Fetch and sync active crawling states
+    async function fetchCrawlStatus() {
+        try {
+            const res = await fetch(`${API_BASE}/crawl/status`);
+            if (!res.ok) return;
+            const data = await res.json();
+
+            const dot = document.getElementById('statusDot');
+            const label = document.getElementById('statusLabel');
+            const btnStart = document.getElementById('btnStart');
+            const btnStop = document.getElementById('btnStop');
+
+            if (data.is_running) {
+                dot.className = "status-dot active";
+                label.textContent = "Crawler Running";
+                btnStart.disabled = true;
+                btnStart.style.opacity = 0.5;
+                btnStop.disabled = false;
+                btnStop.style.opacity = 1.0;
+            } else {
+                dot.className = "status-dot";
+                label.textContent = "Crawler Stopped";
+                btnStart.disabled = false;
+                btnStart.style.opacity = 1.0;
+                btnStop.disabled = true;
+                btnStop.style.opacity = 0.5;
+            }
+        } catch (e) {
+            console.error("Failed to fetch crawler status", e);
+        }
+    }
+
+    // Trigger crawl start
+    async function startCrawler() {
+        try {
+            const res = await fetch(`${API_BASE}/crawl/start`, { method: 'POST' });
+            if (res.ok) {
+                fetchCrawlStatus();
+                fetchStats();
+            }
+        } catch (e) {
+            console.error("Failed to start crawler", e);
+        }
+    }
+
+    // Trigger crawl halt
+    async function stopCrawler() {
+        try {
+            const res = await fetch(`${API_BASE}/crawl/stop`, { method: 'POST' });
+            if (res.ok) {
+                fetchCrawlStatus();
+                fetchStats();
+            }
+        } catch (e) {
+            console.error("Failed to stop crawler", e);
+        }
+    }
+
+    // Trigger incremental recrawl
+    async function recrawlPages() {
+        try {
+            const btn = document.getElementById('btnRecrawl');
+            btn.disabled = true;
+            btn.textContent = 'Queueing...';
+
+            const res = await fetch(`${API_BASE}/crawl/recrawl`, { method: 'POST' });
+            const data = await res.json();
+
+            if (res.ok) {
+                alert(`Incremental recrawl started!\n${data.message}\nPages with ETag/Last-Modified headers will be skipped if unchanged (304).`);
+                fetchCrawlStatus();
+                fetchStats();
+            } else {
+                alert(data.message || data.detail || 'Error starting recrawl');
+            }
+        } catch (e) {
+            console.error('Failed to start recrawl', e);
+        } finally {
+            const btn = document.getElementById('btnRecrawl');
+            btn.disabled = false;
+            btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg> Recrawl (Incremental)`;
+        }
+    }
+
+    // Compute PageRank
+    async function computePageRank() {
+        try {
+            const btn = document.getElementById('btnPageRank');
+            btn.disabled = true;
+            btn.textContent = 'Computing...';
+
+            const res = await fetch(`${API_BASE}/pagerank/compute`, { method: 'POST' });
+            const data = await res.json();
+
+            if (res.ok) {
+                alert(`PageRank complete!\n\nPages computed: ${data.pages_computed}\nLink edges: ${data.link_edges}\nIterations: ${data.iterations}\nConverged: ${data.converged}`);
+                fetchStats();
+            } else {
+                alert(data.detail || 'Error computing PageRank');
+            }
+        } catch (e) {
+            console.error('Failed to compute PageRank', e);
+        } finally {
+            const btn = document.getElementById('btnPageRank');
+            btn.disabled = false;
+            btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> Compute PageRank`;
+        }
+    }
+
+    // Autocomplete queries
+    async function showSuggestions(val) {
+        const dropdown = document.getElementById('suggestDropdown');
+        if (!val || val.trim().length < 1) {
+            dropdown.style.display = 'none';
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_BASE}/suggest?q=${encodeURIComponent(val.trim())}`);
+            if (!res.ok) return;
+            const data = await res.json();
+
+            if (data.suggestions && data.suggestions.length > 0) {
+                dropdown.innerHTML = data.suggestions.map(s => `
+                    <div class="suggest-item" onclick="triggerSearch('${s}')">${s}</div>
+                `).join('');
+                dropdown.style.display = 'block';
+            } else {
+                dropdown.style.display = 'none';
+            }
+        } catch (e) {
+            console.error("Failed to fetch suggestions", e);
+        }
+    }
+
+    function checkSearchEnter(event) {
+        if (event.key === 'Enter') {
+            const query = event.target.value.trim();
+            if (query) {
+                triggerSearch(query);
+            }
+        }
+    }
+
+    // Perform query request and render ranked list
+    async function triggerSearch(query) {
+        document.getElementById('searchBar').value = query;
+        document.getElementById('suggestDropdown').style.display = 'none';
+
+        const resultsList = document.getElementById('resultsList');
+        resultsList.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding-top: 5rem;">Running TF-IDF search...</div>';
+
+        try {
+            const res = await fetch(`${API_BASE}/search?q=${encodeURIComponent(query)}`);
+            if (!res.ok) {
+                resultsList.innerHTML = '<div style="text-align: center; color: var(--danger); padding-top: 5rem;">Search failed.</div>';
+                return;
+            }
+            const data = await res.json();
+            document.getElementById('resultsCount').textContent = data.results_count + ' results';
+
+            if (data.results && data.results.length > 0) {
+                resultsList.innerHTML = data.results.map(r => {
+                    const bd = r.score_breakdown || {};
+                    const breakdown = [
+                        bd.tfidf != null ? `TF-IDF: ${bd.tfidf}` : '',
+                        bd.pagerank != null ? `PR: ${bd.pagerank}` : '',
+                        bd.semantic != null && bd.semantic > 0 ? `Sem: ${bd.semantic}` : '',
+                    ].filter(Boolean).join(' · ');
+                    return `
+                    <div class="result-card">
+                        <div class="result-header">
+                            <a href="${r.url}" target="_blank" class="result-title">${r.title}</a>
+                            <span class="result-score" title="${breakdown}">Score: ${r.score}</span>
+                        </div>
+                        <div class="result-url">${r.url}</div>
+                        <div class="result-snippet">${r.snippet}</div>
+                        <div class="result-meta">
+                            <span>Language: <strong>${r.language ? r.language.toUpperCase() : 'EN'}</strong></span>
+                            <span>Crawled: <strong>${new Date(r.crawl_time).toLocaleString()}</strong></span>
+                            ${breakdown ? `<span style="color: var(--text-muted); font-size: 0.7rem;">${breakdown}</span>` : ''}
+                        </div>
+                    </div>
+                `}).join('');
+            } else {
+                resultsList.innerHTML = `
+                    <div style="text-align: center; color: var(--text-muted); padding-top: 5rem;">
+                        No results found matching "${query}". Try crawling more pages or check query spelling.
+                    </div>
+                `;
+            }
+            
+            // Refresh top queries
+            fetchStats();
+        } catch (e) {
+            console.error("Search failed", e);
+            resultsList.innerHTML = '<div style="text-align: center; color: var(--danger); padding-top: 5rem;">Error fetching search results.</div>';
+        }
+    }
+
+    // Modal Operations
+    async function openPageInspector(pageId) {
+        const modal = document.getElementById('pageModal');
+        
+        try {
+            const res = await fetch(`${API_BASE}/page/${pageId}`);
+            if (!res.ok) return;
+            const page = await res.json();
+
+            document.getElementById('modalTitle').textContent = page.title || "Untitled";
+            
+            const link = document.getElementById('modalUrl');
+            link.href = page.url;
+            link.textContent = page.url;
+            
+            document.getElementById('modalStatus').textContent = page.status_code;
+            document.getElementById('modalCrawlTime').textContent = new Date(page.crawl_time).toLocaleString();
+            
+            // Format page text content cleanly
+            document.getElementById('modalContent').textContent = page.content || "No text content crawled.";
+
+            modal.classList.add('active');
+        } catch (e) {
+            console.error("Failed to load page inspection", e);
+        }
+    }
+
+    function closeModal() {
+        document.getElementById('pageModal').classList.remove('active');
+    }
+
+    function switchView(view) {
+        // Toggle active tab class
+        document.getElementById('tabSearch').classList.toggle('active', view === 'search');
+        document.getElementById('tabAdmin').classList.toggle('active', view === 'admin');
+
+        // Toggle visibility of view sections
+        document.getElementById('searchView').style.display = view === 'search' ? 'block' : 'none';
+        document.getElementById('adminView').style.display = view === 'admin' ? 'block' : 'none';
+    }
+</script>
+</body>
+</html>
