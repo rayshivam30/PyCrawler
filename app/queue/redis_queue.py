@@ -12,6 +12,7 @@ which is what enables true horizontal scaling.
 """
 
 import json
+import ssl
 import logging
 from typing import Optional, Dict, Any
 import redis.asyncio as aioredis
@@ -45,10 +46,11 @@ class RedisQueue:
             "decode_responses": True,
         }
         # rediss:// (TLS) — used by Upstash and other cloud Redis providers.
-        # ssl_cert_reqs="none" (the STRING, not Python None) maps to ssl.CERT_NONE
-        # and disables strict cert verification which causes "Connection closed by server".
         if settings.REDIS_URL.startswith("rediss://"):
-            kwargs["ssl_cert_reqs"] = "none"
+            ssl_ctx = ssl.create_default_context()
+            ssl_ctx.check_hostname = False
+            ssl_ctx.verify_mode = ssl.CERT_NONE
+            kwargs["ssl"] = ssl_ctx
 
         self._client = await aioredis.from_url(settings.REDIS_URL, **kwargs)
         await self._client.ping()
