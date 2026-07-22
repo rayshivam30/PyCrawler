@@ -1,4 +1,5 @@
 import os
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -10,6 +11,7 @@ from app.database.database import Base, engine
 from app.api.endpoints import router as api_router
 from app.crawler.crawler import crawler_manager
 from app.queue.redis_queue import redis_queue
+from app.search.embeddings import EmbeddingEngine
 
 # Configure logging
 logging.basicConfig(
@@ -38,6 +40,12 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Redis connection failed: {e}")
         logger.warning("Crawler will not work until Redis is reachable.")
+
+    # Warm up the semantic embedding model in a background thread so it
+    # doesn't block the event loop or delay the first API response.
+    # _load_model() is CPU-bound; asyncio.to_thread runs it in a thread pool.
+    asyncio.create_task(asyncio.to_thread(EmbeddingEngine.is_available))
+    logger.info("EmbeddingEngine: warm-up started in background thread.")
 
     yield
 
