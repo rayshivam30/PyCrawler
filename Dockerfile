@@ -4,6 +4,10 @@ FROM python:3.13-slim
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
+# Pre-set HuggingFace cache dir so model is baked into the image layer
+ENV HF_HOME=/root/.cache/huggingface
+ENV TRANSFORMERS_CACHE=/root/.cache/huggingface
+
 WORKDIR /workspace
 
 # Install system build tools for PostgreSQL and compiling source packages if needed
@@ -18,6 +22,15 @@ RUN pip install --no-cache-dir uv
 # Pre-copy and resolve dependencies
 COPY requirements.txt .
 RUN uv pip install --system --no-cache --extra-index-url https://download.pytorch.org/whl/cpu -r requirements.txt
+
+# Pre-download the sentence-transformers model at build time so it is baked
+# into the image layer and not re-fetched on every cold start.
+RUN python -c "\
+from sentence_transformers import SentenceTransformer; \
+import torch; \
+torch.set_num_threads(1); \
+SentenceTransformer('all-MiniLM-L6-v2'); \
+print('Model pre-download complete.')"
 
 # Copy source tree
 COPY . .
