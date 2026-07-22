@@ -40,11 +40,17 @@ class RedisQueue:
 
     async def connect(self) -> None:
         """Initialize the async Redis connection pool."""
-        self._client = await aioredis.from_url(
-            settings.REDIS_URL,
-            encoding="utf-8",
-            decode_responses=True,
-        )
+        kwargs: dict = {
+            "encoding": "utf-8",
+            "decode_responses": True,
+        }
+        # rediss:// (TLS) — used by Upstash and other cloud Redis providers.
+        # ssl_cert_reqs=None skips strict cert verification which causes
+        # "Connection closed by server" on some hosts.
+        if settings.REDIS_URL.startswith("rediss://"):
+            kwargs["ssl_cert_reqs"] = None
+
+        self._client = await aioredis.from_url(settings.REDIS_URL, **kwargs)
         await self._client.ping()
         logger.info(f"Connected to Redis at {settings.REDIS_URL}")
 

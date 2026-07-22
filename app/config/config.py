@@ -1,4 +1,4 @@
-import os
+import re
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 from typing import Optional
@@ -25,18 +25,28 @@ class Settings(BaseSettings):
         Priority:
           1. DATABASE_URL env var (Render Postgres add-on / any cloud provider)
           2. Built from individual POSTGRES_* fields (local Docker Compose / dev)
+
+        Note: asyncpg does NOT support the `sslmode` query param — we strip it
+        here and pass ssl=True via connect_args in database.py instead.
         """
         if self.DATABASE_URL_OVERRIDE:
             raw = self.DATABASE_URL_OVERRIDE
-            # Render provides postgresql:// — asyncpg needs postgresql+asyncpg://
-            if raw.startswith("postgresql://") or raw.startswith("postgres://"):
-                raw = raw.replace("postgresql://", "postgresql+asyncpg://", 1)
-                raw = raw.replace("postgres://", "postgresql+asyncpg://", 1)
+            # Fix driver prefix
+            raw = raw.replace("postgres://", "postgresql+asyncpg://", 1)
+            raw = raw.replace("postgresql://", "postgresql+asyncpg://", 1)
+            # Strip sslmode param — asyncpg rejects it; SSL handled via connect_args
+            raw = re.sub(r"[?&]sslmode=[^&]*", "", raw)
+            raw = raw.rstrip("?&")
             return raw
         return (
             f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
             f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
         )
+
+    @property
+    def DATABASE_NEEDS_SSL(self) -> bool:
+        """True when using an external DB URL (Render always requires SSL)."""
+        return self.DATABASE_URL_OVERRIDE is not None
 
     # --- Crawler Settings ---
     CONCURRENT_REQUESTS: int = Field(default=100, description="Max concurrent crawler connections")
