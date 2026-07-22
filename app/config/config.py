@@ -1,4 +1,5 @@
 import re
+from urllib.parse import urlparse, urlunparse
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 from typing import Optional
@@ -32,11 +33,13 @@ class Settings(BaseSettings):
         if self.DATABASE_URL_OVERRIDE:
             raw = self.DATABASE_URL_OVERRIDE
             # Fix driver prefix: asyncpg requires postgresql+asyncpg://
-            # Use regex anchored to start to avoid postgres:// corrupting postgresql://
+            # Anchored regex handles both postgres:// and postgresql:// safely
             raw = re.sub(r"^postgres(ql)?://", "postgresql+asyncpg://", raw)
-            # Strip sslmode param — asyncpg rejects it; SSL is handled via connect_args
-            raw = re.sub(r"[?&]sslmode=[^&]*", "", raw)
-            raw = raw.rstrip("?&")
+            # Strip ALL query params (sslmode, channel_binding, etc.)
+            # Cloud providers like Neon inject multiple params that asyncpg rejects.
+            # SSL is handled via connect_args in database.py instead.
+            parsed = urlparse(raw)
+            raw = urlunparse(parsed._replace(query=""))
             return raw
         return (
             f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
