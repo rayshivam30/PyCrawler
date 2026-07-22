@@ -83,7 +83,7 @@ class QueueManager:
             select(QueueItem).where(QueueItem.url == url).limit(1)
         )
         if not existing_q.scalar_one_or_none():
-            db.add(QueueItem(url=url, depth=depth, priority=priority, status="pending", website_id=site.id))
+            db.add(QueueItem(url=url, depth=0, priority=10, status="pending"))
             await db.commit()
 
         # Push to Redis queue (depth=0, seed priority=10)
@@ -92,6 +92,24 @@ class QueueManager:
             logger.info(f"Seed URL queued: {url}")
             return True, "Seed URL added successfully"
         return False, "URL already exists in queue or has been crawled"
+
+    @staticmethod
+    async def sync_pending_to_redis(db: AsyncSession) -> int:
+        """
+        Fetch all 'pending' QueueItems from DB and push them to Redis.
+        Ensures seeds are populated in Redis even after restart or if Redis was temporarily offline.
+        """
+        stmt = select(QueueItem).where(QueueItem.status == "pending")
+        items = (await db.execute(stmt)).scalars().all()
+        pushed = 0
+        for item in items:
+            try:
+                if not await redis_queue.is_visited(item.url):
+                    await redis_queue.push(item.url, depth=item.depth, priority=item.priority)
+                    pushed += 1
+            except Exception as e:
+                logger.warning(f"Failed to sync {item.url} to Redis: {e}")
+        return pushed
 
     @staticmethod
     async def reset_crawling_tasks(db: AsyncSession) -> None:

@@ -28,6 +28,7 @@ from typing import Dict, Any, Optional
 import aiohttp
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, exists
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from app.config.config import settings
 from app.database.database import SessionLocal
@@ -89,6 +90,8 @@ class CrawlerManager:
         # Re-seed Redis from PostgreSQL Website records so seeds survive restarts
         async with SessionLocal() as db:
             await QueueManager.reset_crawling_tasks(db)
+            pushed = await QueueManager.sync_pending_to_redis(db)
+            logger.info(f"Synced {pushed} pending seeds/URLs from DB to Redis queue.")
 
         # Launch independent async workers
         self.worker_tasks = [
@@ -126,31 +129,33 @@ class CrawlerManager:
                 headers={"User-Agent": settings.USER_AGENT}
             ) as session:
                 while self.is_running:
-                    # Heartbeat: keep worker key alive in Redis
-                    await redis_queue.ping_worker(worker_id)
-
-                    # Pop next task from Redis (blocking with timeout)
-                    task = await redis_queue.pop(timeout=2.0)
-
-                    if task is None:
-                        # Queue empty — wait briefly before retrying
-                        await asyncio.sleep(0.5)
-                        continue
-
-                    url: str = task["url"]
-                    depth: int = task.get("depth", 0)
-                    priority: int = task.get("priority", 0)
-
                     try:
+                        # Heartbeat: keep worker key alive in Redis
+                        try:
+                            await redis_queue.ping_worker(worker_id)
+                        except Exception:
+                            pass
+
+                        # Pop next task from Redis (blocking with timeout)
+                        task = await redis_queue.pop(timeout=2.0)
+
+                        if task is None:
+                            # Queue empty — wait briefly before retrying
+                            await asyncio.sleep(0.5)
+                            continue
+
+                        url: str = task["url"]
+                        depth: int = task.get("depth", 0)
+                        priority: int = task.get("priority", 0)
+
                         async with SessionLocal() as db:
                             await self._crawl_url(db, session, url, depth, priority)
+
                     except asyncio.CancelledError:
-                        # Re-queue the URL so another worker can pick it up
-                        await redis_queue.push(url, depth=depth, priority=priority)
                         raise
                     except Exception as e:
-                        logger.error(f"Worker {worker_id} failed on {url}: {e}")
-                        self.stats["failed_crawled"] += 1
+                        logger.error(f"Worker {worker_id} iteration error: {e}")
+                        await asyncio.sleep(1.0)
 
                     await asyncio.sleep(0.05)
         finally:
@@ -353,12 +358,14 @@ class CrawlerManager:
             for link_url, dest_id in known_url_to_id.items():
                 if dest_id != page_id:  # skip self-links
                     try:
-                        db.add(Link(source_page=page_id, destination_page=dest_id))
-                        await db.flush()
-                    except Exception:
-                        await db.rollback()  # ignore UniqueConstraint violations
-                        # Re-open the session state for the commit below
-                        await db.begin()
+                        stmt = (
+                            pg_insert(Link)
+                            .values(source_page=page_id, destination_page=dest_id)
+                            .on_conflict_do_nothing(constraint="uq_source_destination")
+                        )
+                        await db.execute(stmt)
+                    except Exception as e:
+                        logger.debug(f"Link insertion skipped: {e}")
 
         # ── Enqueue child links into Redis ────────────────────────────────
         next_depth = depth + 1
