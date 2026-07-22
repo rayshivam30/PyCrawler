@@ -44,11 +44,16 @@ class EmbeddingEngine:
             import torch
             torch.set_num_threads(1)
             torch.set_num_interop_threads(1)
-            
+
             from sentence_transformers import SentenceTransformer
-            cls._model = SentenceTransformer(MODEL_NAME)
+            try:
+                cls._model = SentenceTransformer(MODEL_NAME, device="cpu")
+            except Exception:
+                # Fallback to locally cached model if HuggingFace network check fails
+                cls._model = SentenceTransformer(MODEL_NAME, device="cpu", local_files_only=True)
+
             cls._available = True
-            logger.info(f"EmbeddingEngine: Loaded model '{MODEL_NAME}' (PyTorch thread limit: 1) successfully.")
+            logger.info(f"EmbeddingEngine: Loaded model '{MODEL_NAME}' (PyTorch CPU mode) successfully.")
         except ImportError:
             cls._available = False
             logger.warning(

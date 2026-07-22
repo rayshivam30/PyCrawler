@@ -117,10 +117,11 @@ class CrawlerManager:
         """
         Main loop for a single crawler worker.
 
-        Continuously pops URLs from the Redis queue, crawls them,
-        and pushes discovered child links back into Redis.
+        Pops tasks from Redis queue (or PostgreSQL DB fallback),
+        crawls them, and pushes discovered child links back into the queue.
         """
         self.stats["active_workers"] += 1
+        last_ping_time = 0.0
         try:
             timeout = aiohttp.ClientTimeout(total=settings.HTTP_TIMEOUT)
 
@@ -130,18 +131,30 @@ class CrawlerManager:
             ) as session:
                 while self.is_running:
                     try:
-                        # Heartbeat: keep worker key alive in Redis
-                        try:
-                            await redis_queue.ping_worker(worker_id)
-                        except Exception:
-                            pass
+                        # Throttle heartbeat: ping Redis once every 10 seconds to avoid request flooding
+                        now = time.time()
+                        if now - last_ping_time > 10.0:
+                            try:
+                                await redis_queue.ping_worker(worker_id)
+                                last_ping_time = now
+                            except Exception:
+                                pass
 
-                        # Pop next task from Redis (blocking with timeout)
-                        task = await redis_queue.pop(timeout=2.0)
+                        # Pop next task from Redis, or fall back to DB queue if Redis is closed/empty
+                        task = None
+                        try:
+                            task = await redis_queue.pop(timeout=2.0)
+                        except Exception:
+                            task = None
+
+                        if task is None:
+                            # DB queue fallback when Redis is empty or unreachable
+                            async with SessionLocal() as db:
+                                task = await QueueManager.pop_db_task(db)
 
                         if task is None:
                             # Queue empty — wait briefly before retrying
-                            await asyncio.sleep(0.5)
+                            await asyncio.sleep(1.0)
                             continue
 
                         url: str = task["url"]

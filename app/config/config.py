@@ -52,7 +52,7 @@ class Settings(BaseSettings):
         return self.DATABASE_URL_OVERRIDE is not None
 
     # --- Crawler Settings ---
-    CONCURRENT_REQUESTS: int = Field(default=100, description="Max concurrent crawler connections")
+    CONCURRENT_REQUESTS: int = Field(default=5, description="Max concurrent crawler connections (safe for free tier Redis/Postgres)")
     MAX_DEPTH: int = Field(default=3, description="Max crawling depth from seed URLs")
     HTTP_TIMEOUT: int = Field(default=10, description="Network timeout in seconds")
     USER_AGENT: str = Field(default="PyCrawler/1.0 (+http://localhost:8000)", description="User-Agent header")

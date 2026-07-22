@@ -112,6 +112,30 @@ class QueueManager:
         return pushed
 
     @staticmethod
+    async def pop_db_task(db: AsyncSession) -> Optional[Dict[str, Any]]:
+        """
+        Fallback task retriever when Redis is unavailable or closed.
+        Picks the oldest 'pending' QueueItem from PostgreSQL, marks it as 'crawling',
+        and returns {url, depth, priority}.
+        """
+        try:
+            stmt = (
+                select(QueueItem)
+                .where(QueueItem.status == "pending")
+                .order_by(QueueItem.priority.desc(), QueueItem.id.asc())
+                .limit(1)
+                .with_for_update(skip_locked=True)
+            )
+            item = (await db.execute(stmt)).scalar_one_or_none()
+            if item:
+                item.status = "crawling"
+                await db.commit()
+                return {"url": item.url, "depth": item.depth, "priority": item.priority}
+        except Exception as e:
+            logger.debug(f"DB queue pop fallback error: {e}")
+        return None
+
+    @staticmethod
     async def reset_crawling_tasks(db: AsyncSession) -> None:
         """
         Resets any stuck 'crawling' status in the PostgreSQL queue table.

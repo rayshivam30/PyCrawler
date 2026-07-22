@@ -287,7 +287,7 @@ async def get_dashboard_stats(db: AsyncSession = Depends(get_db)):
         "top_queries": top_queries,
         "active_workers": redis_workers if redis_workers > 0 else crawler_manager.stats["active_workers"],
         "is_running": crawler_manager.is_running,
-        "semantic_available": EmbeddingEngine._available is True,   # True/False/None(loading)
+        "semantic_available": EmbeddingEngine._available,   # True, False, or None (loading)
         # Performance timing benchmarks (MS)
         "perf_metrics": {
             "avg_download_time_ms": round((crawler_manager.stats.get("total_download_time", 0.0) / d_count) * 1000, 2),

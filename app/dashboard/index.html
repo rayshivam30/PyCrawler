@@ -935,13 +935,17 @@
             // Update semantic search status badge
             const dot = document.getElementById('semanticDot');
             const lbl = document.getElementById('semanticLabel');
-            if (data.semantic_available) {
+            if (data.semantic_available === true) {
                 dot.style.background = '#22c55e';
                 lbl.textContent = 'Semantic Search: Active (all-MiniLM-L6-v2)';
                 lbl.style.color = '#22c55e';
+            } else if (data.semantic_available === null || data.semantic_available === undefined) {
+                dot.style.background = '#f59e0b';
+                lbl.textContent = 'Semantic Search: Loading model...';
+                lbl.style.color = '#f59e0b';
             } else {
                 dot.style.background = '#ef4444';
-                lbl.textContent = 'Semantic Search: Unavailable (install sentence-transformers)';
+                lbl.textContent = 'Semantic Search: Unavailable';
                 lbl.style.color = 'var(--text-muted)';
             }
             

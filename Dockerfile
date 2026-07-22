@@ -4,9 +4,11 @@ FROM python:3.13-slim
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Pre-set HuggingFace cache dir so model is baked into the image layer
+# Pre-set HuggingFace & Torch cache dirs so model is baked into the image layer
 ENV HF_HOME=/root/.cache/huggingface
 ENV TRANSFORMERS_CACHE=/root/.cache/huggingface
+ENV TORCH_HOME=/root/.cache/torch
+ENV SENTENCE_TRANSFORMERS_HOME=/root/.cache/torch/sentence_transformers
 
 WORKDIR /workspace
 
