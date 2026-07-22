@@ -34,18 +34,23 @@ class QueueManager:
 
         Deduplication is handled by the Redis visited SET (O(1) lookup),
         avoiding expensive DB queries on the hot crawl path.
+        Falls back gracefully if Redis is unavailable.
         """
         url = url.strip()
         if not url:
             return False
 
-        # Fast O(1) dedup check via Redis SET
-        if await redis_queue.is_visited(url):
-            return False
+        try:
+            # Fast O(1) dedup check via Redis SET
+            if await redis_queue.is_visited(url):
+                return False
+            # Mark as visited before pushing to prevent race-condition duplicates
+            await redis_queue.mark_visited(url)
+            await redis_queue.push(url, depth=depth, priority=priority)
+        except Exception as e:
+            logger.warning(f"Redis unavailable during queue push ({e}); falling back to DB-only queue.")
+            # Fall through — seed is still recorded in the DB below
 
-        # Mark as visited before pushing to prevent race-condition duplicates
-        await redis_queue.mark_visited(url)
-        await redis_queue.push(url, depth=depth, priority=priority)
         return True
 
     @staticmethod
@@ -72,10 +77,19 @@ class QueueManager:
             await db.commit()
             await db.refresh(site)
 
+        # Also persist a QueueItem so the crawler can pick it up from DB
+        # if Redis was unavailable during the push above.
+        existing_q = await db.execute(
+            select(QueueItem).where(QueueItem.url == url).limit(1)
+        )
+        if not existing_q.scalar_one_or_none():
+            db.add(QueueItem(url=url, depth=depth, priority=priority, status="pending", website_id=site.id))
+            await db.commit()
+
         # Push to Redis queue (depth=0, seed priority=10)
         added = await QueueManager.add_to_queue(db, url, depth=0, priority=10)
         if added:
-            logger.info(f"Seed URL queued in Redis: {url}")
+            logger.info(f"Seed URL queued: {url}")
             return True, "Seed URL added successfully"
         return False, "URL already exists in queue or has been crawled"
 
