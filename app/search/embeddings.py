@@ -18,7 +18,7 @@ from typing import Optional, List
 logger = logging.getLogger(__name__)
 
 MODEL_NAME = "all-MiniLM-L6-v2"
-MAX_INPUT_CHARS = 2000  # truncate to keep inference fast on CPU
+MAX_INPUT_CHARS = 800  # truncate to keep PyTorch inference fast on CPU
 
 
 class EmbeddingEngine:

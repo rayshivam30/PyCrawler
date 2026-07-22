@@ -56,7 +56,7 @@ class Settings(BaseSettings):
     MAX_DEPTH: int = Field(default=3, description="Max crawling depth from seed URLs")
     HTTP_TIMEOUT: int = Field(default=10, description="Network timeout in seconds")
     USER_AGENT: str = Field(default="PyCrawler/1.0 (+http://localhost:8000)", description="User-Agent header")
-    DEFAULT_CRAWL_DELAY: int = Field(default=1, description="Politeness delay in seconds when not specified by robots.txt")
+    DEFAULT_CRAWL_DELAY: float = Field(default=0.2, description="Politeness delay in seconds when not specified by robots.txt")
     MAX_RETRIES: int = Field(default=3, description="Maximum retries for failed URLs")
 
     # --- API Settings ---
