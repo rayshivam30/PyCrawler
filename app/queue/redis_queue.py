@@ -41,20 +41,25 @@ class RedisQueue:
 
     async def connect(self) -> None:
         """Initialize the async Redis connection pool."""
+        url = settings.REDIS_URL
+        # Upstash requires TLS (rediss://). Auto-convert if entered with single 's' (redis://).
+        if "upstash.io" in url and url.startswith("redis://"):
+            url = url.replace("redis://", "rediss://", 1)
+
         kwargs: dict = {
             "encoding": "utf-8",
             "decode_responses": True,
         }
         # rediss:// (TLS) — used by Upstash and other cloud Redis providers.
-        if settings.REDIS_URL.startswith("rediss://"):
+        if url.startswith("rediss://"):
             ssl_ctx = ssl.create_default_context()
             ssl_ctx.check_hostname = False
             ssl_ctx.verify_mode = ssl.CERT_NONE
             kwargs["ssl"] = ssl_ctx
 
-        self._client = await aioredis.from_url(settings.REDIS_URL, **kwargs)
+        self._client = await aioredis.from_url(url, **kwargs)
         await self._client.ping()
-        logger.info(f"Connected to Redis at {settings.REDIS_URL}")
+        logger.info(f"Connected to Redis at {url}")
 
     async def disconnect(self) -> None:
         """Close the Redis connection pool gracefully."""
