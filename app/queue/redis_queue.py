@@ -52,10 +52,8 @@ class RedisQueue:
         }
         # rediss:// (TLS) — used by Upstash and other cloud Redis providers.
         if url.startswith("rediss://"):
-            ssl_ctx = ssl.create_default_context()
-            ssl_ctx.check_hostname = False
-            ssl_ctx.verify_mode = ssl.CERT_NONE
-            kwargs["ssl"] = ssl_ctx
+            kwargs["ssl_cert_reqs"] = ssl.CERT_NONE
+            kwargs["ssl_check_hostname"] = False
 
         self._client = await aioredis.from_url(url, **kwargs)
         await self._client.ping()
