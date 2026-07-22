@@ -45,10 +45,10 @@ class RedisQueue:
             "decode_responses": True,
         }
         # rediss:// (TLS) — used by Upstash and other cloud Redis providers.
-        # ssl_cert_reqs=None skips strict cert verification which causes
-        # "Connection closed by server" on some hosts.
+        # ssl_cert_reqs="none" (the STRING, not Python None) maps to ssl.CERT_NONE
+        # and disables strict cert verification which causes "Connection closed by server".
         if settings.REDIS_URL.startswith("rediss://"):
-            kwargs["ssl_cert_reqs"] = None
+            kwargs["ssl_cert_reqs"] = "none"
 
         self._client = await aioredis.from_url(settings.REDIS_URL, **kwargs)
         await self._client.ping()
