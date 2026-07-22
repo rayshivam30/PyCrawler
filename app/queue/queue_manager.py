@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
 from urllib.parse import urlparse
 import logging
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict, Any
 from app.models.models import QueueItem, Page, Website
 from app.queue.redis_queue import redis_queue
 
