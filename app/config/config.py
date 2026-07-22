@@ -31,10 +31,10 @@ class Settings(BaseSettings):
         """
         if self.DATABASE_URL_OVERRIDE:
             raw = self.DATABASE_URL_OVERRIDE
-            # Fix driver prefix
-            raw = raw.replace("postgres://", "postgresql+asyncpg://", 1)
-            raw = raw.replace("postgresql://", "postgresql+asyncpg://", 1)
-            # Strip sslmode param — asyncpg rejects it; SSL handled via connect_args
+            # Fix driver prefix: asyncpg requires postgresql+asyncpg://
+            # Use regex anchored to start to avoid postgres:// corrupting postgresql://
+            raw = re.sub(r"^postgres(ql)?://", "postgresql+asyncpg://", raw)
+            # Strip sslmode param — asyncpg rejects it; SSL is handled via connect_args
             raw = re.sub(r"[?&]sslmode=[^&]*", "", raw)
             raw = raw.rstrip("?&")
             return raw
