@@ -60,6 +60,9 @@ class QueueManager:
         then push the URL to the Redis queue.
         """
         url = url.strip()
+        if not url.startswith("http://") and not url.startswith("https://"):
+            url = "https://" + url
+
         parsed = urlparse(url)
         if not parsed.scheme or not parsed.netloc:
             return False, "Invalid URL structure"
@@ -78,7 +81,6 @@ class QueueManager:
             await db.refresh(site)
 
         # Also persist a QueueItem so the crawler can pick it up from DB
-        # if Redis was unavailable during the push above.
         existing_q = await db.execute(
             select(QueueItem).where(QueueItem.url == url).limit(1)
         )
@@ -97,8 +99,27 @@ class QueueManager:
     async def sync_pending_to_redis(db: AsyncSession) -> int:
         """
         Fetch all 'pending' QueueItems from DB and push them to Redis.
-        Ensures seeds are populated in Redis even after restart or if Redis was temporarily offline.
+        Also checks registered Websites that have 0 crawled pages and automatically
+        queues their root seed URL (e.g. https://domain/).
         """
+        try:
+            # 1. Check registered Websites that have 0 pages crawled yet
+            from sqlalchemy import func
+            sites_stmt = select(Website)
+            sites = (await db.execute(sites_stmt)).scalars().all()
+            for site in sites:
+                page_count_stmt = select(func.count(Page.id)).where(Page.website_id == site.id)
+                pages_count = (await db.execute(page_count_stmt)).scalar() or 0
+                if pages_count == 0:
+                    seed_url = f"https://{site.domain}/"
+                    q_check = await db.execute(select(QueueItem).where(QueueItem.url == seed_url))
+                    if not q_check.scalar_one_or_none():
+                        db.add(QueueItem(url=seed_url, depth=0, priority=10, status="pending"))
+                        await db.commit()
+        except Exception as e:
+            logger.warning(f"Error checking uncrawled websites: {e}")
+
+        # 2. Fetch all pending QueueItems from DB
         stmt = select(QueueItem).where(QueueItem.status == "pending")
         items = (await db.execute(stmt)).scalars().all()
         pushed = 0
